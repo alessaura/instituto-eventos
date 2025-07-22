@@ -1,3 +1,5 @@
+FROM php:8.3-cli
+
 # Instalar dependências do sistema
 RUN apt-get update && apt-get install -y \
     git \
@@ -44,3 +46,4 @@ EXPOSE 10000
 CMD php artisan config:cache && \
     php artisan migrate --force && \
     php artisan serve --host 0.0.0.0 --port 10000
+EOF
