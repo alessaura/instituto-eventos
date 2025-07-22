@@ -1,0 +1,14 @@
+node_modules
+vendor
+.git
+.env
+.env.*
+storage/logs/*
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+public/hot
+public/build
+.DS_Store
+README.md
+.gitignore
