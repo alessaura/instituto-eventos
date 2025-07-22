@@ -10,11 +10,22 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libpq-dev \
+    libzip-dev \
+    libicu-dev \
     nodejs \
     npm
 
-# Instalar extensões PHP necessárias para Laravel
-RUN docker-php-ext-install pdo pdo_pgsql mbstring exif pcntl bcmath gd
+# Instalar extensões PHP necessárias (incluindo intl e zip)
+RUN docker-php-ext-install \
+    pdo \
+    pdo_pgsql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl
 
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -24,12 +35,14 @@ WORKDIR /var/www
 
 # Copiar composer files primeiro (para cache)
 COPY composer.json composer.lock ./
-RUN composer install --optimize-autoloader --no-dev --no-scripts
+
+# Instalar dependências PHP (com ignore das extensões se necessário)
+RUN composer install --optimize-autoloader --no-dev --no-scripts --ignore-platform-req=ext-intl --ignore-platform-req=ext-zip
 
 # Copiar resto dos arquivos
 COPY . .
 
-# Instalar dependências JS e build
+# Instalar dependências JS e build assets
 RUN npm install && npm run build
 
 # Finalizar instalação do Composer
