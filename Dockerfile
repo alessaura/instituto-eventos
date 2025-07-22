@@ -13,9 +13,10 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libicu-dev \
     nodejs \
-    npm
+    npm \
+    && rm -rf /var/lib/apt/lists/*
 
-# Instalar extensões PHP necessárias (incluindo intl e zip)
+# Instalar extensões PHP necessárias
 RUN docker-php-ext-install \
     pdo \
     pdo_pgsql \
@@ -30,27 +31,32 @@ RUN docker-php-ext-install \
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Configurar Composer para root
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
 # Definir diretório de trabalho
 WORKDIR /var/www
 
-# Copiar composer files primeiro (para cache)
+# Criar diretórios necessários ANTES do composer
+RUN mkdir -p bootstrap/cache storage/logs storage/framework/sessions storage/framework/views storage/framework/cache/data
+
+# Copiar composer files primeiro
 COPY composer.json composer.lock ./
 
-# Instalar dependências PHP (com ignore das extensões se necessário)
-RUN composer install --optimize-autoloader --no-dev --no-scripts --ignore-platform-req=ext-intl --ignore-platform-req=ext-zip
+# Instalar dependências sem scripts
+RUN composer install --optimize-autoloader --no-dev --no-scripts
 
 # Copiar resto dos arquivos
 COPY . .
 
-# Instalar dependências JS e build assets
+# Definir permissões corretas
+RUN chmod -R 775 storage bootstrap/cache
+
+# Instalar dependências JS e build
 RUN npm install && npm run build
 
-# Finalizar instalação do Composer
-RUN composer dump-autoload --optimize
-
-# Criar diretórios necessários e permissões
-RUN mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache/data \
-    && chmod -R 775 storage bootstrap/cache
+# Gerar autoload SEM package discovery (causa problema)
+RUN composer dump-autoload --optimize --no-scripts
 
 # Expor porta
 EXPOSE 10000
